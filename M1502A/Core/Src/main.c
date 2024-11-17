@@ -48,7 +48,7 @@
 extern CAN_TxHeaderTypeDef   TxHeader;
 extern uint8_t               TxData[8];
 extern uint8_t               RxData[8];
-uint8_t uart_rx_data[5];  // UART 接收单字节数�?
+uint8_t uart_rx_data[5];  // UART 接收单字节数�?
 int16_t Speed = 0;     // 电机速度
 
 //only Received element
@@ -202,7 +202,10 @@ void SystemClock_Config(void)
 						the data storage location of the data frame.
   * @retval FBFeedback
   */
-
+void UART_SendResponse(UART_HandleTypeDef *huart, uint8_t *data, uint16_t size) {
+    // 使用HAL_UART_Transmit_IT进行异步发送
+    HAL_UART_Transmit_IT(huart, data, size);
+}
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART1) {
         if (strncmp((char *)uart_rx_data, "up", 2) == 0) {
@@ -220,7 +223,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             LED1ON;
         }
 
-        // 清除缓冲�?
+        // 准备响应消息
+        uint8_t response[] = "Received";
+        UART_SendResponse(huart, response, sizeof(response) - 1); // 发送响应，不包括null终止符
+
+        // 清除缓冲�?
         memset(uart_rx_data, 0, sizeof(uart_rx_data));
         // 重新启动 UART 接收中断
         HAL_UART_Receive_IT(&huart1, uart_rx_data, sizeof(uart_rx_data));
