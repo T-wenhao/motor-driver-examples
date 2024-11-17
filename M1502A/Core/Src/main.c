@@ -20,6 +20,7 @@
 #include "main.h"
 #include "can.h"
 #include "i2c.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -47,6 +48,8 @@
 extern CAN_TxHeaderTypeDef   TxHeader;
 extern uint8_t               TxData[8];
 extern uint8_t               RxData[8];
+uint8_t uart_rx_data[5];  // UART 接收单字节数据
+int16_t Speed = 0;     // 电机速度
 
 //only Received element
 uint8_t Temp;//FeedBack Temp of motor 
@@ -69,6 +72,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -93,9 +97,11 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	
-	int16_t Speed=0;//Speed of motor 1 
+	// int16_t Speed=0;//Speed of motor 1
+	HAL_UART_Receive_IT(&huart1, &uart_rx_data, sizeof(uart_rx_data)); 
 
   /* USER CODE END 2 */
 
@@ -137,6 +143,7 @@ int main(void)
 			}
 			default:break;
 		}
+		 HAL_Delay(50); // 防止按键抖动
 	}
     /* USER CODE END WHILE */
 
@@ -168,6 +175,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -194,6 +202,31 @@ void SystemClock_Config(void)
 						the data storage location of the data frame.
   * @retval FBFeedback
   */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        if (strncmp((char *)uart_rx_data, "up", 2) == 0) {
+            Speed++;
+            LED3ON;
+        } else if (strncmp((char *)uart_rx_data, "down", 4) == 0) {
+            Speed--;
+            LED4ON;
+        } else if (strncmp((char *)uart_rx_data, "enter", 5) == 0) {
+            Motor_Drive(Speed, 1);
+            LED2ON;
+        } else if (strncmp((char *)uart_rx_data, "back", 4) == 0) {
+            Speed = 0;
+            Motor_Drive(Speed, 1);
+            LED1ON;
+        }
+
+        // 清除缓冲区
+        memset(uart_rx_data, 0, sizeof(uart_rx_data));
+        // 重新启动 UART 接收中断
+        HAL_UART_Receive_IT(&huart1, uart_rx_data, sizeof(uart_rx_data));
+    }
+}
+
 uint8_t Motor_Set_FeedBack(unsigned char FeedBack,uint8_t ID)
 {
 	uint16_t i=0;
@@ -460,4 +493,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
