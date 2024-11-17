@@ -48,7 +48,7 @@
 extern CAN_TxHeaderTypeDef   TxHeader;
 extern uint8_t               TxData[8];
 extern uint8_t               RxData[8];
-uint8_t uart_rx_data[5];  // UART 接收单字节数据
+uint8_t uart_rx_data[5];  // UART 接收单字节数�?
 int16_t Speed = 0;     // 电机速度
 
 //only Received element
@@ -220,7 +220,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             LED1ON;
         }
 
-        // 清除缓冲区
+        // 清除缓冲�?
         memset(uart_rx_data, 0, sizeof(uart_rx_data));
         // 重新启动 UART 接收中断
         HAL_UART_Receive_IT(&huart1, uart_rx_data, sizeof(uart_rx_data));
